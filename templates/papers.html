@@ -93,6 +93,12 @@
               </div>
               <div class="paper-year">{{ paper.year }}</div>
               <div class="paper-downloads"><i class="fas fa-download"></i> {{ paper.downloads or 0 }}</div>
+              <div class="paper-downloads" title="Uploaded by">
+                <i class="fas fa-user"></i> {{ paper.uploaded_by_name or paper.uploaded_by or 'Unknown' }}
+              </div>
+              <div class="paper-downloads" title="Upvotes">
+                <i class="fas fa-thumbs-up"></i> {{ paper.upvotes_count or 0 }}
+              </div>
               {% if paper.filename %}
                 <a href="{{ url_for('download_paper', paper_id=paper._id) }}"
                    class="btn-download"

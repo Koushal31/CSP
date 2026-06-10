@@ -577,8 +577,21 @@ def admin_view_paper(paper_id):
     if not paper:
         abort(404)
 
+    # Ensure vote + uploader name are available for UI
+    paper['upvotes_count'] = paper.get('upvotes_count', 0)
+    paper['upvoted_by'] = paper.get('upvoted_by', [])
+
+    uploaded_email = paper.get('uploaded_by')
+    if uploaded_email:
+        u = users_col.find_one({"email": uploaded_email}, {"_id": 0, "name": 1})
+        paper['uploaded_by_name'] = (u.get('name') if u else uploaded_email)
+    else:
+        paper['uploaded_by_name'] = None
+
     paper['_id'] = str(paper['_id'])
     return render_template('admin/view_paper.html', paper=paper)
+
+
 
 @app.route('/admin/paper/<paper_id>/download')
 @admin_required
