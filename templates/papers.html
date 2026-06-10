@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Find Previous Papers – PapersNav{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="section-container">
+    <h1><i class="fas fa-search"></i> Find Previous Papers</h1>
+    <p>Filter by college, branch, semester, subject, and year</p>
+  </div>
+</section>
+
+<section class="papers-section">
+  <div class="section-container">
+
+    <!-- FILTER FORM -->
+    <div class="filter-card">
+      <form method="GET" action="{{ url_for('papers') }}" id="filterForm">
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label>College</label>
+            <select name="college" id="collegeSelect">
+              <option value="">All Colleges</option>
+              {% for c in colleges %}
+                <option value="{{ c.name }}" {% if filters.college == c.name %}selected{% endif %}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Branch</label>
+            <select name="branch" id="branchSelect">
+              <option value="">All Branches</option>
+              {% for b in branches %}
+                <option value="{{ b.code }}" {% if filters.branch == b.code %}selected{% endif %}>{{ b.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Semester</label>
+            <select name="semester" id="semesterSelect">
+              <option value="">All Semesters</option>
+              {% for s in semesters %}
+                <option value="{{ s }}" {% if filters.semester == s|string %}selected{% endif %}>Semester {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Subject</label>
+            <input type="text" name="subject" id="subjectInput" placeholder="Type subject name..."
+                   value="{{ filters.subject }}" autocomplete="off"/>
+            <div id="subjectSuggestions" class="suggestions-dropdown"></div>
+          </div>
+          <div class="filter-group">
+            <label>Year</label>
+            <input type="number" name="year" placeholder="e.g. 2023" min="2000" max="2030"
+                   value="{{ filters.year }}"/>
+          </div>
+          <div class="filter-group filter-actions">
+            <button type="submit" class="btn-primary"><i class="fas fa-search"></i> Search</button>
+            <a href="{{ url_for('papers') }}" class="btn-ghost">Clear</a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- RESULTS -->
+      <div class="results-header">
+        <span class="results-count">
+          {% if results %}
+            Showing {{ results|length }} result{% if results|length != 1 %}s{% endif %}
+            {% if not searched %}for all approved papers{% endif %}
+          {% else %}
+            No papers found
+          {% endif %}
+        </span>
+        {% if results %}
+          <span class="results-sub">Click a row to preview · Download button saves the PDF</span>
+        {% endif %}
+      </div>
+
+      {% if results %}
+        <div class="papers-list">
+          {% for paper in results %}
+            <div class="paper-row" onclick="window.location='{{ url_for('view_paper', paper_id=paper._id) }}'">
+              <div class="paper-icon"><i class="fas fa-file-pdf"></i></div>
+              <div class="paper-info">
+                <strong>{{ paper.subject }}</strong>
+                <div class="paper-meta">
+                  <span><i class="fas fa-university"></i> {{ paper.college }}</span>
+                  <span><i class="fas fa-code-branch"></i> {{ paper.branch }}</span>
+                  <span><i class="fas fa-layer-group"></i> Semester {{ paper.semester }}</span>
+                </div>
+              </div>
+              <div class="paper-year">{{ paper.year }}</div>
+              <div class="paper-downloads"><i class="fas fa-download"></i> {{ paper.downloads or 0 }}</div>
+              {% if paper.filename %}
+                <a href="{{ url_for('download_paper', paper_id=paper._id) }}"
+                   class="btn-download"
+                   onclick="event.stopPropagation()">
+                  <i class="fas fa-download"></i> Download
+                </a>
+              {% else %}
+                <span class="btn-download disabled" title="Sample paper – no file attached">
+                  <i class="fas fa-eye"></i> Sample
+                </span>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <i class="fas fa-search-minus"></i>
+          <h3>No papers found</h3>
+          <p>Try adjusting your filters or <a href="{{ url_for('upload') }}">upload one</a> if you have it!</p>
+        </div>
+      {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+// Dynamic subject suggestions
+const branchSel = document.getElementById('branchSelect');
+const semSel = document.getElementById('semesterSelect');
+const subjectInput = document.getElementById('subjectInput');
+const suggBox = document.getElementById('subjectSuggestions');
+
+let allSubjects = [];
+
+async function fetchSubjects() {
+  const branch = branchSel.value;
+  const sem = semSel.value;
+  const resp = await fetch(`/api/subjects?branch=${branch}&semester=${sem}`);
+  allSubjects = await resp.json();
+}
+
+[branchSel, semSel].forEach(el => el.addEventListener('change', fetchSubjects));
+fetchSubjects();
+
+subjectInput.addEventListener('input', () => {
+  const q = subjectInput.value.toLowerCase();
+  const matches = allSubjects.filter(s => s.toLowerCase().includes(q));
+  if (q.length < 1 || !matches.length) { suggBox.innerHTML = ''; suggBox.style.display='none'; return; }
+  suggBox.innerHTML = matches.slice(0,6).map(s =>
+    `<div class="sugg-item" onclick="pickSubject('${s}')">${s}</div>`
+  ).join('');
+  suggBox.style.display = 'block';
+});
+
+function pickSubject(s) {
+  subjectInput.value = s;
+  suggBox.style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#subjectInput') && !e.target.closest('#subjectSuggestions'))
+    suggBox.style.display = 'none';
+});
+</script>
+{% endblock %}

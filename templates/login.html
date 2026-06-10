@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Login – PapersNav{% endblock %}
+{% block content %}
+{% set form_data = form_data or {} %}
+
+<section class="auth-section">
+  <div class="auth-container">
+
+    <div class="auth-brand">
+      <i class="fas fa-graduation-cap"></i>
+      <h2>PapersNav</h2>
+      <p>Your gateway to previous year papers</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab {% if active_tab != 'register' %}active{% endif %}" id="loginTab" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab {% if active_tab == 'register' %}active{% endif %}" id="registerTab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div id="loginPanel" class="auth-panel" style="display: {% if active_tab == 'register' %}none{% else %}block{% endif %};">
+      {% if error %}
+        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+      {% endif %}
+      {% if reg_success %}
+        <div class="alert alert-success"><i class="fas fa-check-circle"></i> {{ reg_success }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="Enter your email" required value="{{ email or '' }}" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-icon-wrap">
+            <input type="password" name="password" id="loginPwd" placeholder="Enter your password" required/>
+            <button type="button" class="toggle-pwd" onclick="togglePwd('loginPwd',this)"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary btn-full btn-lg">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+      </form>
+
+      <p class="auth-switch">Don't have an account? <button class="link-btn" onclick="switchTab('register')">Register here</button></p>
+
+    </div>
+
+    <!-- REGISTER PANEL -->
+    <div id="registerPanel" class="auth-panel" style="display: {% if active_tab == 'register' %}block{% else %}none{% endif %};">
+      {% if reg_error %}
+        <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ reg_error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" name="name" placeholder="Enter your full name" required value="{{ form_data.get('name','') if form_data else '' }}"/>
+        </div>
+        <div class="form-group">
+          <label>College</label>
+          <select name="college">
+            <option value="" disabled {% if not form_data.get('college') %}selected{% endif %}>Select your college (optional)</option>
+            {% for c in colleges or [] %}
+              <option value="{{ c.name }}" {% if form_data.get('college') == c.name %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="Enter your email" required value="{{ form_data.get('email','') if form_data else '' }}"/>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-icon-wrap">
+            <input type="password" name="password" id="regPwd" placeholder="Create a password" required minlength="6"/>
+            <button type="button" class="toggle-pwd" onclick="togglePwd('regPwd',this)"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary btn-full btn-lg">
+          <i class="fas fa-user-plus"></i> Create Account
+        </button>
+      </form>
+
+      <p class="auth-switch">Already have an account? <button class="link-btn" onclick="switchTab('login')">Login here</button></p>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function switchTab(tab) {
+  document.getElementById('loginPanel').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('registerPanel').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+  document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+}
+function togglePwd(id, btn) {
+  const inp = document.getElementById(id);
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  btn.innerHTML = showing ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+}
+const activeTab = "{{ active_tab or 'login' }}";
+switchTab(activeTab);
+</script>
+{% endblock %}

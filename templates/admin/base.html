@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Admin – PapersNav{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}"/>
+</head>
+<body class="admin-body">
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()">×</button></div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-graduation-cap"></i>
+      <span>PapersNav</span>
+      <small>Admin Panel</small>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint=='admin_dashboard' %}active{% endif %}">
+        <i class="fas fa-th-large"></i> Dashboard
+      </a>
+      <a href="{{ url_for('admin_papers') }}?status=pending" class="{% if request.endpoint=='admin_papers' and request.args.get('status')=='pending' %}active{% endif %}">
+        <i class="fas fa-clock"></i> Pending Papers
+        {% if admin_pending_count %}
+          <span class="badge">{{ admin_pending_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('admin_papers') }}" class="{% if request.endpoint=='admin_papers' and not request.args.get('status') %}active{% endif %}">
+        <i class="fas fa-file-pdf"></i> All Papers
+      </a>
+      <a href="{{ url_for('admin_colleges') }}" class="{% if request.endpoint=='admin_colleges' %}active{% endif %}">
+        <i class="fas fa-university"></i> Colleges
+      </a>
+      <a href="{{ url_for('admin_branches') }}" class="{% if request.endpoint=='admin_branches' %}active{% endif %}">
+        <i class="fas fa-code-branch"></i> Branches
+      </a>
+      <a href="{{ url_for('admin_subjects') }}" class="{% if request.endpoint=='admin_subjects' %}active{% endif %}">
+        <i class="fas fa-book"></i> Subjects
+      </a>
+      <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint=='admin_users' %}active{% endif %}">
+        <i class="fas fa-users"></i> Users
+      </a>
+      <div class="sidebar-divider"></div>
+      <a href="{{ url_for('home') }}">
+        <i class="fas fa-external-link-alt"></i> View Site
+      </a>
+      <a href="{{ url_for('logout') }}" class="sidebar-logout">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <header class="admin-header">
+      <button class="sidebar-toggle" onclick="document.getElementById('adminSidebar').classList.toggle('open')">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 class="admin-page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+      <div class="admin-header-right">
+        <span><i class="fas fa-user-shield"></i> {{ session.get('name','Admin') }}</span>
+      </div>
+    </header>
+
+    <main class="admin-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

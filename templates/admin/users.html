@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% block title %}Users – Admin PapersNav{% endblock %}
+{% block page_title %}Users Management{% endblock %}
+{% block content %}
+
+<div class="admin-table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr><th>#</th><th>Name</th><th>Email</th><th>College</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ u.name }}</strong></td>
+          <td class="email-cell">{{ u.email }}</td>
+          <td>{{ u.college or '–' }}</td>
+          <td><span class="role-pill role-{{ u.role }}">{{ u.role }}</span></td>
+          <td>{{ u.created_at.strftime('%d %b %Y') if u.created_at else '–' }}</td>
+          <td>
+            {% if u.role != 'admin' %}
+              <form method="POST" action="{{ url_for('delete_user', user_id=u._id) }}"
+                    onsubmit="return confirm('Delete user {{ u.name }}?')">
+                <button class="btn-delete"><i class="fas fa-trash"></i></button>
+              </form>
+            {% else %}
+              <span style="color:var(--text-muted);font-size:.8rem">Protected</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

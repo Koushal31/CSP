@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}PapersNav — Previous Year Question Papers{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="section-container">
+    <h1>Find previous year papers</h1>
+    <p>Search by college, branch, semester and subject to ace your exams.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('papers') }}" class="btn-primary btn-lg"><i class="fas fa-search"></i> Search Papers</a>
+      {% if session.get('user_id') %}
+        <a href="{{ url_for('upload') }}" class="btn-outline btn-lg"><i class="fas fa-upload"></i> Upload Paper</a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="btn-outline btn-lg"><i class="fas fa-sign-in-alt"></i> Login / Register</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="stats-strip">
+  <div class="stats-container">
+    <div class="stat-item">
+      <span class="stat-num">{{ total_papers }}+</span>
+      <span class="stat-label">Papers available</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">{{ total_colleges }}+</span>
+      <span class="stat-label">Colleges</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">{{ total_users }}+</span>
+      <span class="stat-label">Students</span>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
