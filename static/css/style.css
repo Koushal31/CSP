@@ -494,13 +494,35 @@ input, select, textarea, button { font-family: inherit; }
     background: var(--red); padding: 1rem; gap: .25rem; z-index: 999; }
   .nav-links.open { display: flex; }
   .nav-toggle { display: block; }
+
+  /* Layout stability */
+  body { padding-top: 0; }
+
   .features-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+
+  /* Make filters easy to use on touch */
   .filter-grid { grid-template-columns: 1fr 1fr; }
+  .filter-actions { flex-direction: column !important; align-items: stretch !important; gap: .6rem; }
+  .filter-actions .btn-primary,
+  .filter-actions .btn-outline,
+  .filter-actions button { width: 100%; justify-content: center; }
+
   .stats-container { gap: 1.5rem; }
   .stat-sep { display: none; }
   .steps-row { flex-direction: column; align-items: center; }
   .step-arrow { transform: rotate(90deg); }
+
+  /* Avoid hover shift causing sideways movement on phones */
   .paper-row { flex-wrap: wrap; }
+  .paper-row:hover { transform: none; }
+
   .hero h1 { font-size: 2rem; }
 }
+
+@media (max-width: 380px) {
+  .filter-grid { grid-template-columns: 1fr; }
+  .paper-info strong { font-size: .9rem; }
+  .paper-row { padding: 1rem 1.1rem; }
+}
+
