@@ -249,6 +249,7 @@ def api_subjects():
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
+
     colleges = list(colleges_col.find({}, {"_id": 0, "name": 1, "code": 1}).sort("name", 1))
     branches = list(branches_col.find({}, {"_id": 0, "name": 1, "code": 1, "college_code": 1}).sort([("college_code", 1), ("name", 1)]))
     semesters = list(range(1, 9))
@@ -313,7 +314,9 @@ def upload():
                     "status": "pending",
                     "uploaded_by": session.get('email'),
                     "uploaded_at": utcnow(),
-                    "downloads": 0
+                    "downloads": 0,
+                    "upvotes_count": 0,
+                    "upvoted_by": []
                 })
                 logger.info(f'Paper uploaded by {session.get("email")}: {filename}')
                 flash("Paper uploaded successfully! It will be visible after admin approval.", "success")
@@ -338,6 +341,8 @@ def upload():
 
 @app.route('/paper/<paper_id>')
 def view_paper(paper_id):
+    # Loads paper + extra vote information for UI
+
     object_id = get_object_id(paper_id)
     if object_id is None:
         return redirect(url_for('papers'))
@@ -345,8 +350,61 @@ def view_paper(paper_id):
     paper = papers_col.find_one({"_id": object_id, "status": "approved"})
     if not paper:
         return redirect(url_for('papers'))
+
+    # Vote fields (safe for older records)
+    paper['upvotes_count'] = paper.get('upvotes_count', 0)
+    paper['upvoted_by'] = paper.get('upvoted_by', [])
+
+    # For UI: uploaded by name
+    uploaded_email = paper.get('uploaded_by')
+    if uploaded_email:
+        u = users_col.find_one({"email": uploaded_email}, {"_id": 0, "name": 1})
+        paper['uploaded_by_name'] = (u.get('name') if u else uploaded_email)
+    else:
+        paper['uploaded_by_name'] = None
+
     paper['_id'] = str(paper['_id'])
     return render_template('view_paper.html', paper=paper)
+
+@app.route('/paper/<paper_id>/upvote', methods=['POST'])
+def upvote_paper(paper_id):
+    object_id = get_object_id(paper_id)
+    if object_id is None:
+        return jsonify({"error": "Not found"}), 404
+
+    paper = papers_col.find_one({"_id": object_id, "status": "approved"}, {"upvoted_by": 1})
+    if not paper:
+        return jsonify({"error": "Not found"}), 404
+
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # Use string comparison because session user_id is string
+    upvoted_by = paper.get('upvoted_by', [])
+    has_voted = user_id in upvoted_by
+
+    if has_voted:
+        papers_col.update_one(
+            {"_id": object_id},
+            {
+                "$pull": {"upvoted_by": user_id},
+                "$inc": {"upvotes_count": -1}
+            }
+        )
+        new_count = max(int((papers_col.find_one({"_id": object_id}) or {}).get('upvotes_count', 0)), 0)
+        return jsonify({"upvoted": False, "upvotes_count": new_count})
+    else:
+        papers_col.update_one(
+            {"_id": object_id},
+            {
+                "$addToSet": {"upvoted_by": user_id},
+                "$inc": {"upvotes_count": 1}
+            }
+        )
+        new_count = int((papers_col.find_one({"_id": object_id}) or {}).get('upvotes_count', 0))
+        return jsonify({"upvoted": True, "upvotes_count": new_count})
+
 
 @app.route('/download/<paper_id>')
 def download_paper(paper_id):
@@ -422,7 +480,9 @@ def register():
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         college = request.form.get('college', '')
+        role = request.form.get('role', 'student').strip().lower()
         form_data = request.form
+
 
         if not name or not email or not password:
             return render_template('login.html', reg_error="All fields are required.", colleges=colleges,
@@ -436,14 +496,18 @@ def register():
             return render_template('login.html', reg_error="Email already registered.", colleges=colleges,
                                    active_tab=active_tab, form_data=form_data)
 
+        if role not in {'student', 'teacher'}:
+            role = 'student'
+
         users_col.insert_one({
             "name": name,
             "email": email,
             "password": generate_password_hash(password),
-            "role": "student",
+            "role": role,
             "college": college,
             "created_at": utcnow()
         })
+
         return render_template('login.html', reg_success="Registered! Please log in.", colleges=colleges)
 
     return render_template('login.html', colleges=colleges, active_tab=active_tab, form_data=form_data)
@@ -742,6 +806,19 @@ def delete_user(user_id):
         abort(404)
     users_col.delete_one({"_id": object_id})
     return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/user/<user_id>/promote', methods=['POST'])
+@admin_required
+def promote_to_admin(user_id):
+    object_id = get_object_id(user_id)
+    if object_id is None:
+        abort(404)
+
+    # Prevent changing role if the target is already admin (idempotent)
+    users_col.update_one({"_id": object_id}, {"$set": {"role": "admin"}})
+    return redirect(url_for('admin_users'))
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

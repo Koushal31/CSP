@@ -89,6 +89,8 @@
 .role-pill { padding: .2rem .65rem; border-radius: 99px; font-size: .75rem; font-weight: 700; }
 .role-admin { background: #f3e5f5; color: #6a1b9a; }
 .role-student { background: #e3f2fd; color: #1565c0; }
+.role-teacher { background: #fff3e0; color: #e65100; }
+
 
 .action-cell { display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
 .btn-approve {
