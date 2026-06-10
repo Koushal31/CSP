@@ -45,9 +45,10 @@
           </div>
           <div class="filter-group">
             <label>Subject</label>
-            <input type="text" name="subject" id="subjectInput" placeholder="Type subject name..."
-                   value="{{ filters.subject }}" autocomplete="off"/>
-            <div id="subjectSuggestions" class="suggestions-dropdown"></div>
+            <select name="subject" id="subjectSelect">
+              <option value="">All Subjects</option>
+              {# Options are populated dynamically based on branch+semester #}
+            </select>
           </div>
           <div class="filter-group">
             <label>Year</label>
@@ -120,42 +121,48 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-// Dynamic subject suggestions
+// Dynamic subject dropdown (select instead of free-typed text)
 const branchSel = document.getElementById('branchSelect');
 const semSel = document.getElementById('semesterSelect');
-const subjectInput = document.getElementById('subjectInput');
-const suggBox = document.getElementById('subjectSuggestions');
+const subjectSel = document.getElementById('subjectSelect');
+
+const selectedSubject = "{{ filters.subject or '' }}";
 
 let allSubjects = [];
 
-async function fetchSubjects() {
+async function fetchSubjectsAndRender() {
   const branch = branchSel.value;
   const sem = semSel.value;
-  const resp = await fetch(`/api/subjects?branch=${branch}&semester=${sem}`);
+
+  if (!branch || !sem) {
+    allSubjects = [];
+    subjectSel.innerHTML = `<option value="">All Subjects</option>`;
+    subjectSel.disabled = true;
+    return;
+  }
+
+  subjectSel.disabled = false;
+
+  const resp = await fetch(`/api/subjects?branch=${encodeURIComponent(branch)}&semester=${encodeURIComponent(sem)}`);
   allSubjects = await resp.json();
+
+  const opts = allSubjects.map(s => {
+    const safe = String(s);
+    const isSel = safe === selectedSubject;
+    return `<option value="${safe}" ${isSel ? 'selected' : ''}>${safe}</option>`;
+  }).join('');
+
+  subjectSel.innerHTML = `<option value="">All Subjects</option>${opts}`;
 }
 
-[branchSel, semSel].forEach(el => el.addEventListener('change', fetchSubjects));
-fetchSubjects();
+[branchSel, semSel].forEach(el => el.addEventListener('change', fetchSubjectsAndRender));
 
-subjectInput.addEventListener('input', () => {
-  const q = subjectInput.value.toLowerCase();
-  const matches = allSubjects.filter(s => s.toLowerCase().includes(q));
-  if (q.length < 1 || !matches.length) { suggBox.innerHTML = ''; suggBox.style.display='none'; return; }
-  suggBox.innerHTML = matches.slice(0,6).map(s =>
-    `<div class="sugg-item" onclick="pickSubject('${s}')">${s}</div>`
-  ).join('');
-  suggBox.style.display = 'block';
-});
-
-function pickSubject(s) {
-  subjectInput.value = s;
-  suggBox.style.display = 'none';
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#subjectInput') && !e.target.closest('#subjectSuggestions'))
-    suggBox.style.display = 'none';
+window.addEventListener('DOMContentLoaded', () => {
+  // Disable until branch+semester are chosen
+  if (!branchSel.value || !semSel.value) {
+    subjectSel.disabled = true;
+  }
+  fetchSubjectsAndRender();
 });
 </script>
 {% endblock %}
